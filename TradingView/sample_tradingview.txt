@@ -1,0 +1,48 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © arjn1472
+//@version=5
+strategy("Supertrend Strategy with Entry & Exit JSON Alerts", overlay=true)
+
+// === Input Parameters ===
+atrPeriod = input.int(10, title="ATR Length")
+factor = input.float(1.0, title="Factor")
+symbolName = input.string("NSE:NIFTY25APRFUT", title="Symbol for Dynamic Alerts")
+
+// === Supertrend Calculation ===
+[supertrend, direction] = ta.supertrend(factor, atrPeriod)
+
+// === Plot Supertrend ===
+plot(supertrend, color = direction ? color.green : color.red, title="Supertrend")
+
+// === JSON Messages (dynamic for alert())
+longEntryJson = '{"order":[{"type":"ENTRY","quantity":1,"side":"B","ordertype":"MARKET","symbol":"' + symbolName + '","segment":"FUT","product":"N"}]}'
+shortEntryJson = '{"order":[{"type":"ENTRY","quantity":1,"side":"S","ordertype":"MARKET","symbol":"' + symbolName + '","segment":"FUT","product":"N"}]}'
+
+longExitJson = '{"order":[{"type":"EXIT","quantity":1,"side":"S","ordertype":"MARKET","symbol":"' + symbolName + '","segment":"FUT","product":"N"}]}'
+shortExitJson = '{"order":[{"type":"EXIT","quantity":1,"side":"B","ordertype":"MARKET","symbol":"' + symbolName + '","segment":"FUT","product":"N"}]}'
+
+// === Strategy Logic ===
+longCondition = (direction == 1) and (strategy.position_size <= 0)
+shortCondition = (direction == -1) and (strategy.position_size >= 0)
+
+if (longCondition)
+    strategy.close("Short") // Close Short if any
+    strategy.entry("Long", strategy.long)
+    alert(longEntryJson, alert.freq_once_per_bar_close)   // send Long ENTRY alert
+    alert(shortExitJson, alert.freq_once_per_bar_close)   // send Short EXIT alert
+
+if (shortCondition)
+    strategy.close("Long") // Close Long if any
+    strategy.entry("Short", strategy.short)
+    alert(shortEntryJson, alert.freq_once_per_bar_close)  // send Short ENTRY alert
+    alert(longExitJson, alert.freq_once_per_bar_close)    // send Long EXIT alert
+
+// === ALERTCONDITIONS (constant messages for manual alerts)
+
+// Long Entry + Short Exit
+alertcondition(longCondition, title="Long Entry Alert", message='{"order":[{"type":"ENTRY","quantity":1,"side":"B","ordertype":"MARKET","symbol":"NSE:NIFTY25APRFUT","segment":"FUT","product":"N"}]}')
+alertcondition(longCondition, title="Short Exit Alert", message='{"order":[{"type":"EXIT","quantity":1,"side":"B","ordertype":"MARKET","symbol":"NSE:NIFTY25APRFUT","segment":"FUT","product":"N"}]}')
+
+// Short Entry + Long Exit
+alertcondition(shortCondition, title="Short Entry Alert", message='{"order":[{"type":"ENTRY","quantity":1,"side":"S","ordertype":"MARKET","symbol":"NSE:NIFTY25APRFUT","segment":"FUT","product":"N"}]}')
+alertcondition(shortCondition, title="Long Exit Alert", message='{"order":[{"type":"EXIT","quantity":1,"side":"S","ordertype":"MARKET","symbol":"NSE:NIFTY25APRFUT","segment":"FUT","product":"N"}]}')
