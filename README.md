@@ -1,6 +1,6 @@
 # Alphabots Public Repository
 
-This repository contains sample scripts and strategies for integrating with Alphabots Signal webhook platform.
+This repository contains sample scripts and strategies for integrating with Alphabots Signal based webhook.
 
 ## TradingView Sample Script
 
