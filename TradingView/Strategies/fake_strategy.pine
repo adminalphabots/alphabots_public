@@ -1,0 +1,49 @@
+//@version=5
+// IMP READ THIS SECTION FIRST 
+// This is a classic example of strategies which shows great backtest but doesnt really work. DO NOT USE THIS, its just to spread awareness.
+
+strategy("Quantum Entanglement (Filtered MA Crossover)", overlay=true)
+
+// === Inputs ===
+maFast = input.int(7, "Fast MA Length")
+maSlow = input.int(20, "Slow MA Length")
+symbolName = input.string("NSE:NIFTY25APRFUT", title="Symbol for Alerts")
+
+adxThreshold = input.int(15, "Min ADX Trend Strength")
+rsiLength = input.int(14, "RSI Length")
+atrLength = input.int(14, "ATR Length")
+minATR = input.float(0.5, "Min ATR for Volatility Filter")
+
+// === Indicators ===
+fastMA = ta.sma(close, maFast)
+slowMA = ta.sma(close, maSlow)
+[adx, _, _] = ta.dmi(14, 14)
+rsi = ta.rsi(close, rsiLength)
+atr = ta.atr(atrLength)
+
+// === Filters ===
+trendStrong = adx > adxThreshold
+volatilityOK = atr > minATR
+bullishCandle = close > open
+bearishCandle = close < open
+
+// === Entry Conditions ===
+longSignal = ta.crossover(fastMA, slowMA) and trendStrong and rsi < 65 and volatilityOK and bullishCandle
+shortSignal = ta.crossunder(fastMA, slowMA) and trendStrong and rsi > 35 and volatilityOK //and bearishCandle
+
+
+// === Strategy Execution ===
+if (longSignal)
+    strategy.entry("Filtered Long", strategy.long)
+    strategy.exit("Trailing Stop Long", "Filtered Long", trail_points = atr * 4,trail_offset = atr*7)
+    
+if (shortSignal)
+    strategy.entry("Filtered Short", strategy.short)
+    strategy.exit("Trailing Stop Short", "Filtered Short", trail_points = atr * 4,trail_offset = atr*7)
+    
+
+// === Plots ===
+plot(fastMA, "Fast MA", color=color.teal)
+plot(slowMA, "Slow MA", color=color.orange)
+plotshape(longSignal, title="Buy", location=location.belowbar, color=color.green, style=shape.triangleup, size=size.small)
+plotshape(shortSignal, title="Sell", location=location.abovebar, color=color.red, style=shape.triangledown, size=size.small)
