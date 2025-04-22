@@ -2,7 +2,14 @@
 
 This repository contains sample scripts and strategies for integrating with Alphabots Signal based webhook.
 
-## TradingView Sample Script
+## Project Structure
+- `TradingView/`: Contains TradingView strategies and indicators
+  - `Strategies/`: Trading strategy implementations
+    - `ma_crossover_strategy.txt`: Moving Average Crossover strategy
+    - `sample_tradingview.txt`: Sample Supertrend strategy
+  - `Indicators/`: Custom indicator scripts
+
+## TradingView Strategies
 
 The `TradingView/sample_tradingview.txt` file contains a Pine Script strategy that demonstrates:
 - Supertrend indicator implementation
@@ -23,6 +30,8 @@ To set up a webhook in TradingView, follow these steps:
 - Generates JSON formatted alerts compatible with Alphabots Signal webhook
 - Supports both automated alerts (via `alert()`) and manual alerts (via `alertcondition()`)
 - Dynamic symbol input for flexible deployment
+- Includes MA Crossover strategy with configurable periods
+- Supports multiple timeframes for strategy testing
 
 ### Alert Format
 Alerts follow this JSON structure:
