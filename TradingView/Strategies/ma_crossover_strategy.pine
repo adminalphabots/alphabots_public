@@ -1,6 +1,6 @@
 // This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © alphabots
-//@version=5 (use on 5min for best results)
+//@version=5
 strategy("MA Crossover Strategy with SL/Targets", overlay=true)
 
 // === Input Parameters ===
@@ -31,17 +31,23 @@ shortCondition = ta.crossunder(fastMA, slowMA)
 
 if (longCondition)
     strategy.entry("Long", strategy.long)
-    strategy.exit("Long Exit", "Long", stop=close * (1 - stopLossPct/100), limit=close * (1 + targetPct/100),alert_message=longExitJson)
-    alert(longEntryJson,alert.freq_once_per_bar_close)
-    alert(shortExitJson, alert.freq_once_per_bar_close)
+    strategy.exit("Long Exit", "Long", stop=close * (1 - stopLossPct/100), limit=close * (1 + targetPct/100))
+    alert(longEntryJson, alert.freq_once_per_bar_close)
+    alert(shortExitJson,alert.freq_once_per_bar_close)
+    // Check if exit conditions are met (SL/TG)
+    if low <= close * (1 - stopLossPct/100) or high >= close * (1 + targetPct/100)
+        alert(longExitJson, alert.freq_once_per_bar_close)
 
     
 if (shortCondition)
     strategy.entry("Short", strategy.short)
-    strategy.exit("Short Exit", "Short", stop=close * (1 + stopLossPct/100), limit=close * (1 - targetPct/100),alert_message=shortExitJson)
+    strategy.exit("Short Exit", "Short", stop=close * (1 + stopLossPct/100), limit=close * (1 - targetPct/100))
     alert(shortEntryJson, alert.freq_once_per_bar_close)
     alert(longExitJson,alert.freq_once_per_bar_close)
-
+    
+    if high >= close * (1 + stopLossPct/100) or low <= close * (1 - targetPct/100)
+        alert(shortExitJson, alert.freq_once_per_bar_close)
+        
 // === ALERTCONDITIONS ===
 //alertcondition(longCondition, title="Long Entry Alert", message='{"order":[{"type":"ENTRY","quantity":1,"side":"B","ordertype":"MARKET","symbol":"NSE:NIFTY25APRFUT","segment":"FUT","product":"N"}]}')
 //alertcondition(shortCondition, title="Short Entry Alert", message='{"order":[{"type":"ENTRY","quantity":1,"side":"S","ordertype":"MARKET","symbol":"NSE:NIFTY25APRFUT","segment":"FUT","product":"N"}]}')

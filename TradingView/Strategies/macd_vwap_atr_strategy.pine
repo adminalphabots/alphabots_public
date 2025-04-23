@@ -1,0 +1,58 @@
+//@version=5  1H, 2H
+strategy("MACD & VWAP Strategy with ATR SL/Targets", overlay=true)
+
+// === Input Parameters ===
+fastMACD = input.int(10, "MACD Fast Length")
+slowMACD = input.int(20, "MACD Slow Length")
+signalPeriods = input.int(5, "MACD Signal Periods")
+vwapBars = input.int(25, "VWAP Rolling Bars", minval=1)
+minADX = input.int(20, "Minimum ADX Trend Strength")
+atrLength = input.int(12, "ATR Length")
+atrMultiplierSL = input.float(1.5, "ATR Multiplier for Stop Loss")
+atrMultiplierTarget1 = input.float(4.0, "ATR Multiplier for Target 1")
+//atrMultiplierTarget2 = input.float(2.0, "ATR Multiplier for Target 2")
+
+// === Indicators ===
+[macdLine, signalLine, _] = ta.macd(close, fastMACD, slowMACD, signalPeriods)
+// Rolling VWAP calculation
+varip float cumulativePV = 0.0
+varip float cumulativeVol = 0.0
+varip int barsCount = 0
+
+if bar_index % vwapBars == 0
+    cumulativePV := close * volume
+    cumulativeVol := volume
+    barsCount := 1
+else
+    cumulativePV += close * volume
+    cumulativeVol += volume
+    barsCount += 1
+
+vwap = cumulativePV / cumulativeVol
+[adx, _, _] = ta.dmi(14, 14)
+atr = ta.atr(atrLength)
+
+// === Entry Conditions ===
+longCondition = ta.crossover(macdLine, signalLine) and close > vwap and adx >= minADX
+shortCondition = ta.crossunder(macdLine, signalLine) and close < vwap and adx >= minADX
+
+// === Alert Messages ===
+symbolName = input.string("NSE:NIFTY25APRFUT", "Alert Symbol")
+
+// === Strategy Execution ===
+if (longCondition)
+    strategy.entry("MACD-VWAP Long", strategy.long)
+    strategy.exit("Long Exit", "MACD-VWAP Long",stop=close - atr * atrMultiplierSL,limit=close + atr * atrMultiplierTarget1)
+    
+if (shortCondition)
+    strategy.entry("MACD-VWAP Short", strategy.short)
+    strategy.exit("Short Exit", "MACD-VWAP Short",stop=close + atr * atrMultiplierSL,limit=close - atr * atrMultiplierTarget1)
+
+
+plot(vwap, "Rolling VWAP", color=color.purple)
+plot(strategy.position_size > 0 ? close - atr * atrMultiplierSL : na, "Long Stop", color=color.red, style=plot.style_linebr)
+plot(strategy.position_size > 0 ? close + atr * atrMultiplierTarget1 : na, "Long Target 1", color=color.green, style=plot.style_linebr)
+//plot(strategy.position_size > 0 ? close + atr * atrMultiplierTarget2 : na, "Long Target 2", color=color.lime, style=plot.style_linebr)
+plot(strategy.position_size < 0 ? close + atr * atrMultiplierSL : na, "Short Stop", color=color.red, style=plot.style_linebr)
+plot(strategy.position_size < 0 ? close - atr * atrMultiplierTarget1 : na, "Short Target 1", color=color.green, style=plot.style_linebr)
+//plot(strategy.position_size < 0 ? close - atr * atrMultiplierTarget2 : na, "Short Target 2", color=color.lime, style=plot.style_linebr)

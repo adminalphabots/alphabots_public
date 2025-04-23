@@ -1,0 +1,46 @@
+//@version=5
+strategy("MACD & Anchored VWAP Strategy", overlay=true)
+
+// === Input Parameters ===
+fastMACD = input.int(12, "MACD Fast Length")
+slowMACD = input.int(26, "MACD Slow Length")
+signalPeriods = input.int(9, "MACD Signal Periods")
+vwapBars = input.int(20, "VWAP Rolling Bars", minval=1)
+minADX = input.int(20, "Minimum ADX Trend Strength")
+
+// === Indicators ===
+[macdLine, signalLine, _] = ta.macd(close, fastMACD, slowMACD, signalPeriods)
+// Rolling VWAP calculation
+varip float cumulativePV = 0.0
+varip float cumulativeVol = 0.0
+varip int barsCount = 0
+
+if bar_index % vwapBars == 0
+    cumulativePV := close * volume
+    cumulativeVol := volume
+    barsCount := 1
+else
+    cumulativePV += close * volume
+    cumulativeVol += volume
+    barsCount += 1
+
+vwap = cumulativePV / cumulativeVol
+[adx, _, _] = ta.dmi(14, 14)
+
+// === Entry Conditions ===
+longCondition = ta.crossover(macdLine, signalLine) and close > vwap and adx >= minADX
+shortCondition = ta.crossunder(macdLine, signalLine) and close < vwap and adx >= minADX
+
+// === Strategy Execution ===
+if (longCondition)
+    strategy.entry("MACD-VWAP Long", strategy.long)
+    
+if (shortCondition)
+    strategy.entry("MACD-VWAP Short", strategy.short)
+
+// === Alert Messages ===
+symbolName = input.string("NSE:NIFTY25APRFUT", "Alert Symbol")
+alertJson = '{"order":[{"type":"ENTRY","symbol":"' + symbolName + '","side":"' + (longCondition ? "B" : "S") + '"}]}'
+alert(alertJson, alert.freq_once_per_bar_close)
+
+plot(vwap, "Rolling VWAP", color=color.purple)
