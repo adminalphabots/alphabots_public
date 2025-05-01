@@ -25,7 +25,7 @@ To set up a webhook in TradingView, follow these steps:
 3. Configure Alert Conditions : Set the conditions for your alert based on your strategy. You can use indicators or price levels as triggers.
 4. Set Webhook URL : In the alert creation dialog, find the "Webhook URL" field. Enter the URL provided by Alphabots Signal webhook platform. (eg.https://algoexestaging.alphabots.in/api/v1/signal/webhook-handler/b59dd7e3-fd33-4094-b082-95bd08******)
 
-(https://https://github.com/adminalphabots/alphabots_public/tree/main/images/tradingview_hook.png)
+![TradingView Webhook Setup](images/tradingview_hooks.png)
 
 5. Customize Alert Message : In the "Message" field, enter the JSON formatted alert message that matches the structure required by Alphabots. Ensure it includes all necessary fields like type, symbol, quantity, etc.
 6. Save Alert : Click "Create" to save your alert. TradingView will now send a POST request to the specified webhook URL whenever the alert conditions are met.
