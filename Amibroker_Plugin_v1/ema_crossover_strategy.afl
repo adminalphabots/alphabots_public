@@ -1,0 +1,134 @@
+// === EMA Crossover AlphaBots Strategy ===
+// Simple EMA Crossover with AlphaBots Signal Dispatch, it will enter long , have Target /SL and exit only. No Shorting.
+
+_SECTION_BEGIN("EMA Crossover AlphaBots");
+
+// === Parameters ===
+SetOption("NoDefaultColumns", True);
+SetBarsRequired(1000, 0);
+liveMode = ParamToggle("Live Mode", "No|Yes", 0);
+strategyName = "EMA_CROSSOVER_ALPHA_BOTS";
+
+qty=75;
+lot_qty = 75;
+lots=qty/lot_qty;
+
+// EMA Periods
+shortEMAPeriod = Param("Short EMA Period", 10, 1, 200, 1);
+longEMAPeriod = Param("Long EMA Period", 30, 1, 200, 1);
+
+// Target and Stop Loss Parameters
+targetPercent = Param("Target %", 2, 0.1, 10, 0.1);
+stopLossPercent = Param("Stop Loss %", 1, 0.1, 10, 0.1);
+
+// Calculate EMAs
+EMA_Short = EMA(Close, shortEMAPeriod);
+EMA_Long = EMA(Close, longEMAPeriod);
+
+// === Buy/Sell Logic ===
+BuySignal  = Cross(EMA_Short, EMA_Long);
+SellSignal = Cross(EMA_Long, EMA_Short);
+
+// Track position entry price for SL/Target
+EntryPrice = IIf(BuySignal, Close, IIf(SellSignal, Close, Null));
+EntryPrice = ValueWhen(BuySignal OR SellSignal, Close, 1);
+
+// Calculate Target and Stop Loss levels
+TargetLevel = IIf(BuySignal, EntryPrice * (1 + targetPercent / 100), IIf(SellSignal, EntryPrice * (1 - targetPercent / 100), Null));
+StopLossLevel = IIf(BuySignal, EntryPrice * (1 - stopLossPercent / 100), IIf(SellSignal, EntryPrice * (1 + stopLossPercent / 100), Null));
+
+// === Exit Signals based on SL/Target ===
+ExitByTarget = IIf(BuySignal, Close >= TargetLevel, IIf(SellSignal, Close <= TargetLevel, Null));
+ExitByStopLoss = IIf(BuySignal, Close <= StopLossLevel, IIf(SellSignal, Close >= StopLossLevel, Null));
+
+// Combine all exit conditions
+ExitSignal = SellSignal OR ExitByTarget OR ExitByStopLoss;
+
+// === Plotting ===
+Plot(Close, "Price", colorDefault, styleCandle);
+Plot(EMA_Short, "Short EMA", colorBlue);
+Plot(EMA_Long, "Long EMA", colorRed);
+PlotShapes(IIf(BuySignal, shapeUpArrow, shapeNone), colorGreen, 0, Low, -15);
+PlotShapes(IIf(SellSignal, shapeDownArrow, shapeNone), colorRed, 0, High, -15);
+Plot(TargetLevel, "Target Level", colorDarkGreen, styleDashed);
+Plot(StopLossLevel, "Stop Loss Level", colorDarkRed, styleDashed);
+
+mappedSymbol = Name(); // Default symbol, can be mapped later
+
+// === Manual Trigger Button ===
+manualBuy = ParamTrigger("Buy Manually", "SEND TRADE");
+manualSell = ParamTrigger("Sell Manualy", "SEND TRADE");
+
+// === AlphaBots Signal JSON Builder ===
+signal_json = "";
+
+// Ignore Warning for now since we will be running this on live data
+if (LastValue(Ref(BuySignal, -1)) OR manualBuy)
+{
+    signal_json = "{ \"order\": [ { \"type\": \"ENTRY\", \"quantity\": " + NumToStr(lots, 1.0) +
+                  ", \"side\": \"B\", \"ordertype\": \"MARKET\", \"symbol\": \"" + mappedSymbol + "\", \"segment\": \"FUT\", \"product\": \"N\" } ] }";
+}
+else if (LastValue(Ref(ExitSignal, -1)) OR manualSell) // Use ExitSignal for all sell conditions
+{
+    signal_json = "{ \"order\": [ { \"type\": \"EXIT\", \"quantity\": " + NumToStr(lots, 1.0) +
+                  ", \"side\": \"S\", \"ordertype\": \"MARKET\", \"symbol\": \"" + mappedSymbol + "\", \"segment\": \"FUT\", \"product\": \"N\" } ] }";
+}
+
+// You can modify the above jsop to dynamically set, symbols, ordertype, segement, product based on symbol_map.json
+
+// === Save & Send if Signal Exists ===
+if (signal_json != "")
+{
+    // Read existing signal.json content to prevent re-sending same signal
+    existing_signal_json = "";
+    fh_read = fopen("C:\\path\\alphabots_signal.json", "r");
+    if (fh_read)
+    {
+        while (! feof(fh_read))
+        {
+            existing_signal_json = existing_signal_json + fgets(fh_read);
+        }
+        fclose(fh_read);
+    }
+
+    // Normalize JSON strings by removing whitespace for robust comparison
+    normalized_signal_json = StrReplace(StrReplace(StrReplace(signal_json, " ", ""), "\n", ""), "\r", "");
+    normalized_existing_signal_json = StrReplace(StrReplace(StrReplace(existing_signal_json, " ", ""), "\n", ""), "\r", "");
+
+    // Only write if the normalized signal has changed
+    if (normalized_signal_json != normalized_existing_signal_json)
+    {
+        fh = fopen("C:\\path\\alphabots_signal.json", "w");
+        if (fh)
+        {
+            fputs(signal_json, fh);
+            fclose(fh);
+        }
+
+        fh = fopen("c:\\path\\signal.json", "w");
+        if (fh != 0)
+        {
+            fputs(signal_json, fh);
+            fclose(fh);
+        }
+    }
+}
+
+_SECTION_END();
+
+
+/* Parameter Mapping for the Signal json object 
+
+Instructions for Valid Order Format
+type - "ENTRY" or "EXIT" (required)
+symbol - Trading symbol like "NSE:SBIN-EQ" (required)
+quantity - Number of shares/lots (required, must be > 0)
+side - "B" (Buy) or "S" (Sell) (required)
+ordertype - "MARKET", "LIMIT", "STOP", or "STOPLIMIT" (required)
+segment - "EQ", "FUT", or "OPT" (required for ENTRY only)
+product - "I" (Intraday), "D" (Delivery), or "N" (Normal) (ENTRY only)
+limit_price - Required for LIMIT and STOPLIMIT (must be > 0)
+stop_price - Required for STOP and STOPLIMIT (must be > 0)
+
+for support reach out to help@alphabots.in
+*/
