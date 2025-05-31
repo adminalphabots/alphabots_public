@@ -25,16 +25,16 @@ Here are the steps:1
     }
 
 ### Parameter Mapping for the Signal json object 
+## Instructions for Valid Order Format
 
-Instructions for Valid Order Format
-type - "ENTRY" or "EXIT" (required)
-symbol - Trading symbol like "NSE:SBIN-EQ" (required)
-quantity - Number of shares/lots (required, must be > 0)
-side - "B" (Buy) or "S" (Sell) (required)
-ordertype - "MARKET", "LIMIT", "STOP", or "STOPLIMIT" (required)
-segment - "EQ", "FUT", or "OPT" (required for ENTRY only)
-product - "I" (Intraday), "D" (Delivery), or "N" (Normal) (ENTRY only)
-limit_price - Required for LIMIT and STOPLIMIT (must be > 0)
-stop_price - Required for STOP and STOPLIMIT (must be > 0)
+1. **type** - "ENTRY" or "EXIT" (required)
+2. **symbol** - Trading symbol like "NSE:SBIN-EQ" (required)
+3. **quantity** - Number of shares/lots (required, must be > 0)
+4. **side** - "B" (Buy) or "S" (Sell) (required)
+5. **ordertype** - "MARKET", "LIMIT", "STOP", or "STOPLIMIT" (required)
+6. **segment** - "EQ", "FUT", or "OPT" (required for ENTRY only)
+7. **product** - "I" (Intraday), "D" (Delivery), or "N" (Normal) (ENTRY only)
+8. **limit_price** - Required for LIMIT and STOPLIMIT (must be > 0)
+9. **stop_price** - Required for STOP and STOPLIMIT (must be > 0)
 
 for support reach out to help@alphabots.in
